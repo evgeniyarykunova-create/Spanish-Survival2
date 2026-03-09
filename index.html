@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<title>Spanish Survival Game</title>
+
+<style>
+
+body{
+font-family:Arial;
+margin:0;
+background:#f4f6fb;
+}
+
+#mapScreen{
+text-align:center;
+padding:20px;
+}
+
+#map{
+position:relative;
+width:900px;
+height:500px;
+margin:auto;
+background-size:cover;
+border:2px solid #ccc;
+}
+
+.locationBtn{
+position:absolute;
+padding:10px 15px;
+background:white;
+border-radius:8px;
+border:1px solid #aaa;
+cursor:pointer;
+}
+
+#locationBackground{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background-size:cover;
+z-index:-1;
+}
+
+#taskBox{
+position:absolute;
+bottom:40px;
+left:50%;
+transform:translateX(-50%);
+background:white;
+padding:25px;
+border-radius:10px;
+width:500px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+text-align:center;
+}
+
+button{
+padding:10px 15px;
+margin:5px;
+cursor:pointer;
+}
+
+.choiceImage{
+width:120px;
+margin:10px;
+cursor:pointer;
+border:3px solid transparent;
+}
+
+.choiceImage:hover{
+border-color:#4CAF50;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="mapScreen">
+
+<h2>Карта города</h2>
+
+<div id="map"></div>
+
+</div>
+
+
+<div id="locationScreen" style="display:none">
+
+<div id="locationBackground"></div>
+
+<div id="taskBox"></div>
+
+</div>
+
+
+<script>
+
+const gameConfig = {
+
+mapBackground:"assets/map.jpg",
+
+locations:[
+
+{
+
+id:"supermarket",
+
+title:"Супермаркет",
+
+mapPosition:{x:200,y:300},
+
+background:"assets/supermarket.jpg",
+
+tasks:[
+
+{
+
+type:"single_choice",
+
+question:"¿Cómo preguntas el precio?",
+
+options:[
+"¿Cuánto cuesta?",
+"¿Qué precio tiene?",
+"¿Cuánto vale?"
+],
+
+correct:[0,2]
+
+},
+
+{
+
+type:"dropdown",
+
+question:"Quiero ______ tomates.",
+
+options:[
+"medio kilo",
+"medio",
+"media kilo"
+],
+
+correct:0
+
+},
+
+{
+
+type:"image_choice",
+
+question:"Encuentra el pepino",
+
+options:[
+
+{img:"assets/tomato.jpg",correct:false},
+
+{img:"assets/cucumber.jpg",correct:true},
+
+{img:"assets/eggplant.jpg",correct:false}
+
+]
+
+}
+
+],
+
+nextLocations:["pharmacy"]
+
+},
+
+{
+
+id:"pharmacy",
+
+title:"Аптека",
+
+mapPosition:{x:600,y:200},
+
+background:"assets/pharmacy.jpg",
+
+tasks:[
+
+{
+
+type:"single_choice",
+
+question:"¿Cómo pides medicina?",
+
+options:[
+"Necesito medicina",
+"Quiero medicina",
+"¿Tiene algo para el dolor?"
+],
+
+correct:[2]
+
+}
+
+],
+
+nextLocations:[]
+
+}
+
+]
+
+}
+
+
+const map = document.getElementById("map")
+
+map.style.backgroundImage = `url(${gameConfig.mapBackground})`
+
+const mapScreen = document.getElementById("mapScreen")
+const locationScreen = document.getElementById("locationScreen")
+const taskBox = document.getElementById("taskBox")
+const locationBackground = document.getElementById("locationBackground")
+
+let currentLocation = null
+let taskIndex = 0
+
+
+function renderMap(){
+
+gameConfig.locations.forEach(loc=>{
+
+const btn=document.createElement("div")
+
+btn.className="locationBtn"
+
+btn.innerText=loc.title
+
+btn.style.left=loc.mapPosition.x+"px"
+btn.style.top=loc.mapPosition.y+"px"
+
+btn.onclick=()=>openLocation(loc.id)
+
+map.appendChild(btn)
+
+})
+
+}
+
+
+function openLocation(id){
+
+currentLocation=gameConfig.locations.find(l=>l.id===id)
+
+taskIndex=0
+
+mapScreen.style.display="none"
+locationScreen.style.display="block"
+
+locationBackground.style.backgroundImage=`url(${currentLocation.background})`
+
+loadTask()
+
+}
+
+
+function loadTask(){
+
+taskBox.innerHTML=""
+
+const task=currentLocation.tasks[taskIndex]
+
+const q=document.createElement("h3")
+q.innerText=task.question
+
+taskBox.appendChild(q)
+
+if(task.type==="single_choice"){
+
+task.options.forEach((opt,i)=>{
+
+const btn=document.createElement("button")
+
+btn.innerText=opt
+
+btn.onclick=()=>{
+
+if(task.correct.includes(i)) nextTask()
+else alert("Попробуй ещё")
+
+}
+
+taskBox.appendChild(btn)
+
+})
+
+}
+
+
+if(task.type==="dropdown"){
+
+const select=document.createElement("select")
+
+task.options.forEach((opt,i)=>{
+
+const o=document.createElement("option")
+o.value=i
+o.innerText=opt
+
+select.appendChild(o)
+
+})
+
+const btn=document.createElement("button")
+
+btn.innerText="Ответить"
+
+btn.onclick=()=>{
+
+if(parseInt(select.value)===task.correct) nextTask()
+else alert("Попробуй ещё")
+
+}
+
+taskBox.appendChild(select)
+taskBox.appendChild(btn)
+
+}
+
+
+if(task.type==="image_choice"){
+
+task.options.forEach(opt=>{
+
+const img=document.createElement("img")
+
+img.src=opt.img
+
+img.className="choiceImage"
+
+img.onclick=()=>{
+
+if(opt.correct) nextTask()
+else alert("Попробуй ещё")
+
+}
+
+taskBox.appendChild(img)
+
+})
+
+}
+
+}
+
+
+function nextTask(){
+
+taskIndex++
+
+if(taskIndex>=currentLocation.tasks.length){
+
+showNextLocations()
+
+}else{
+
+loadTask()
+
+}
+
+}
+
+
+function showNextLocations(){
+
+taskBox.innerHTML="<h3>Локация завершена!</h3>"
+
+if(currentLocation.nextLocations.length===0){
+
+taskBox.innerHTML+="<h2>🎉 Поздравляем! Ты прожил один день в Испании и выжил.</h2>"
+return
+
+}
+
+currentLocation.nextLocations.forEach(id=>{
+
+const loc=gameConfig.locations.find(l=>l.id===id)
+
+const btn=document.createElement("button")
+
+btn.innerText="Перейти: "+loc.title
+
+btn.onclick=()=>openLocation(id)
+
+taskBox.appendChild(btn)
+
+})
+
+}
+
+
+renderMap()
+
+</script>
+
+</body>
+</html>
